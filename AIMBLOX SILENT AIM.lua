@@ -19,15 +19,12 @@ local player = players.LocalPlayer
 local mouse = player:GetMouse()
 local cam = workspace.CurrentCamera
 
---//just checks if behind a wall
-function notWall(target)
+--//notwall'player' returns true or false
+function returnWall(target)
     local ray = Ray.new(player.Character.Head.Position, (target.Position - player.Character.Head.Position).Unit * 300)
     local part, pos = workspace:FindPartOnRayWithIgnoreList(ray, {player.Character}, false, true)
-    if part then
-        local humanoid = part.Parent:FindFirstChildOfClass("Humanoid")
-        if not humanoid then
-            humanoid = part.Parent.Parent:FindFirstChildOfClass("Humanoid")
-        end
+    if part then local humanoid = part.Parent:FindFirstChildOfClass("Humanoid")
+        if not humanoid then humanoid = part.Parent.Parent:FindFirstChildOfClass("Humanoid") end
         if humanoid and target and humanoid.Parent == target.Parent then
             return true
         end
@@ -35,26 +32,26 @@ function notWall(target)
     return false
 end
 
---//gets the closest player to mouse
-function closestPlayer()
+--//returns character 'head' closest to the mouse
+function mouseclose()
     local target = nil
-    local maxDist = math.huge
-    for _, v in pairs(players:GetPlayers()) do
-        if v.Character and v.Character:FindFirstChild("Humanoid") and v.Character.Humanoid.Health > 0 then
+    local maxdistance = math.huge
+
+    for i, v in pairs(players:GetPlayers()) do if v.Character and v.Character:FindFirstChild("Humanoid") and v.Character.Humanoid.Health > 0 then return end
             if v.Character:FindFirstChild("HumanoidRootPart") then
-                local screenPos = cam:WorldToScreenPoint(v.Character.HumanoidRootPart.Position)
-                local dist = (Vector2.new(mouse.X, mouse.Y) - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
-                if dist < maxDist and notWall(v.Character.HumanoidRootPart) then
-                    target = v.Character:FindFirstChild("Head")
-                    maxDist = dist
-                end
+            local screenPos = cam:WorldToScreenPoint(v.Character.HumanoidRootPart.Position)
+            local dist = (Vector2.new(mouse.X, mouse.Y) - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
+            if dist < maxdistance and returnWall(v.Character.HumanoidRootPart) then
+                target = v.Character:FindFirstChild("Head")
+                maxdistance = dist
             end
         end
     end
     return target
 end
 
-function trailMake(origin, target)
+--//shitty trail i can give two fucks
+function trail(origin, target)
     local att0 = Instance.new("Attachment")
     att0.Position = origin
     att0.Parent = workspace.Terrain
@@ -77,42 +74,37 @@ function trailMake(origin, target)
     game:GetService("Debris"):AddItem(beam, .7)
 end
 
-function hitPart(target)
+--[[ not necessary since we've already specificed which bodypart but useful for later use
+function hitwhat(target)
     local bodyParts = {"Head", "HumanoidRootPart"}
     for _, partName in ipairs(bodyParts) do
         local part = target.Parent:FindFirstChild(partName)
         if part then
             local ray = Ray.new(player.Character.Head.Position, (part.Position - player.Character.Head.Position).Unit * 300)
-            local hitPart, position = workspace:FindPartOnRayWithIgnoreList(ray, {player.Character}, false, true)
-            if hitPart == part then
+            local hitwhat, position = workspace:FindPartOnRayWithIgnoreList(ray, {player.Character}, false, true)
+            if hitwhat == part then
                 return partName, position
             end
         end
     end
     return nil, nil
 end
+--]]
 
 --//hooked function
 local rqr_func = require(repStorage.Client.Components.GunEngine)
-
 local ogfire = rqr_func.OnTargetHit.Fire
 
-rqr_func.OnTargetHit.Fire = function(self, arg1_3, arg2_2)
+hookfunction(ogfire, function(self, arg1_3, arg2_2)
 
-    local closest = closestPlayer()
+    local closest = mouseclose()
 
     if closest then
-        local head = closest 
-        if head then
-            arg1_3 = head
-            arg2_2 = head.Position
-        end
+    local part = closest
+    local pos = closest.Position
     end
 
-    local pos = arg2_2
-    local part = arg1_3
-
-    trailMake(player.Character.Head.Position, pos)
+    trail(player.Character.Head.Position, pos)
 
     return ogfire(self, part, pos)
-end
+end)
